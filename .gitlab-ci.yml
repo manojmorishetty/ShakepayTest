@@ -1,0 +1,15 @@
+build:
+  image: docker:19.03.1
+  stage: build
+  only:
+    - master
+  services:
+    - docker:19.03.1-dind
+  script:
+    - docker run --rm -v $(pwd):/app -e PUBLIC_URL=/ -w /app node:12-alpine /bin/sh -c "npm install; npm build"
+    - apk add jq
+    - export VERSION=$(cat package.json | jq -r .version)
+    - export IMAGE_VERSION_TAG=$CI_REGISTRY_IMAGE:$VERSION-$CI_COMMIT_SHORT_SHA
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_VERSION_TAG .
+    - docker push $IMAGE_VERSION_TAG
